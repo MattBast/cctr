@@ -25,7 +25,7 @@ pub struct Cli {
     pub delete: bool,
 
     /// Squeeze multiple occurrences of the characters listed in the last 
-    // operand (either string1 or string2) in the input into a single instance 
+    /// operand (either string1 or string2) in the input into a single instance 
     /// of the character. This occurs after all deletion and translation is 
     /// completed.
     #[arg(short)]

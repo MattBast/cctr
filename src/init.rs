@@ -1,18 +1,45 @@
 use crate::args::Cli;
 use anyhow::Result;
+use std::process::exit;
+use log::error;
 
-/// Read the user inputs, check they're valid and create a BufReader
-/// for the provided file.
-pub fn init(args: &Cli) -> Result<()> {
+/// Defines the different modes that the application can be run in.
+pub enum Mode {
+    /// Translate the characters from string1 to string2
+    Translate,
+    /// Delete the characters listed in string1
+    Delete,
+    /// Remove the duplicate characters listed in string1
+    Compress,
+    /// Delete the characters listed in string1 and remove
+    /// duplicate characters listed in string2
+    DeleteCompress,
+}
 
-    println!("complement1: {:?}", args.complement1);
-    println!("complement2: {:?}", args.complement2);
-    println!("delete: {:?}", args.delete);
-    println!("squeeze: {:?}", args.squeeze);
-    println!("unbuffered: {:?}", args.unbuffered);
-    println!("string1: {:?}", args.string1);
-    println!("string2: {:?}", args.string2);
+/// Decide what mode to run the application in
+pub fn init(args: &Cli) -> Result<Mode> {
 
-    Ok(())
+
+    if args.string2 == None && args.delete && !args.squeeze {
+        Ok(Mode::Delete)
+    }
+    else if args.string2 == None && !args.delete && args.squeeze {
+        Ok(Mode::Compress)
+    }
+    else if args.string2 != None && !args.delete {
+        Ok(Mode::Translate)
+    }
+    else if args.string2 != None && args.delete && args.squeeze {
+        Ok(Mode::DeleteCompress)
+    }
+    else {
+        error!("usage: 
+            tr [-Ccsu] string1 string2
+            tr [-Ccu] -d string1
+            tr [-Ccu] -s string1
+            tr [-Ccu] -ds string1 string2"
+        );
+        exit(2)
+    }
 
 }
