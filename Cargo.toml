@@ -1,0 +1,23 @@
+[package]
+name = "cctr"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+clap-verbosity-flag = "2.1.1"
+anyhow = "1.0"
+log = "0.4"
+exitcode = "1.1.2"
+
+[dev-dependencies]
+assert_cmd = "2.0.12"
+predicates = "3.0.4"
+assert_fs = "1.1.0"
+proptest = "1.0.0"
+
+[profile.test.package.proptest]
+opt-level = 3
+
+[profile.test.package.rand_chacha]
+opt-level = 3
