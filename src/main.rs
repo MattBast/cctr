@@ -9,13 +9,15 @@ fn main() -> Result<()> {
     let args = cctr::args::Cli::parse();
 
     // Decide what mode to run the application in
-    let _mode = match cctr::init::init(&args) {
+    let mode = match cctr::init::init(&args) {
         Ok(mode) => mode,
         Err(e) => {
             error!("{:?}", e);
             exit(2)
         }
     };
+
+    cctr::run::run(&args, &mode)?;
 
     exit(exitcode::OK);
 }
