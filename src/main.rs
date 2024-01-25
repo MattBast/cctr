@@ -6,7 +6,7 @@ use log::error;
 
 fn main() -> Result<()> {
     // Get the args from the command line.
-    let args = cctr::args::Cli::parse();
+    let mut args = cctr::args::Cli::parse();
 
     // Decide what mode to run the application in
     let mode = match cctr::init::init(&args) {
@@ -17,7 +17,7 @@ fn main() -> Result<()> {
         }
     };
 
-    cctr::run::run(&args, &mode)?;
+    cctr::run::run(&mut args, &mode)?;
 
     exit(exitcode::OK);
 }

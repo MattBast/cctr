@@ -1,7 +1,7 @@
 use clap::Parser;
 
 /// Defines the arguments and flags the user can input into the CLI tool.
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, Default)]
 #[command(name = "cctr")]
 #[command(version = "1.0")]
 #[command(
