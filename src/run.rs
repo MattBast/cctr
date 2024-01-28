@@ -5,7 +5,7 @@ use anyhow::{Result, Context};
 use std::io::{stdin, BufRead, BufReader, IsTerminal, stdout, Write, BufWriter};
 use std::iter::zip;
 use unicode_segmentation::UnicodeSegmentation;
-use regex::Regex;
+// use regex::Regex;
 
 /// Translate, delete and/or compress the strings held in `args`. Use `mode` to
 /// decide whether to translate, delete and/or compress. Write the output to stdout.
@@ -68,9 +68,10 @@ fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result
 
 	// Replace all chars found in string1 with the chars found in string2
 	for (char1, char2) in zip(graphemes1, graphemes2) {
-		let re = Regex::new(char1).unwrap();
-		line = re.replace_all(&line, char2).to_string();
-		// line = line.replace(char1, char2);
+		// let re = Regex::new(char1).unwrap();
+		// line = re.replace_all(&line, char2).to_string();
+		line = line.replace(char1, char2);
+		// line = line.replace(char::is_lowercase, &char1.to_string().to_uppercase());
 	}
 
 	writeln!(writer, "{}", line)
@@ -313,8 +314,8 @@ mod tests {
     // translate tests (classes)
     // ************************************************************************
 
-     #[test]
-    fn can_translate_upper_class(){
+    #[test]
+    fn can_translate_lower_to_upper_class(){
         
         let line = "coding challenge".to_string();
 
@@ -332,5 +333,269 @@ mod tests {
         assert_eq!(writer, b"CODING CHALLENGE\n");
         
     }
+
+    #[test]
+    fn can_translate_upper_to_lower_class(){
+        
+        let line = "CODING CHALLENGE".to_string();
+
+        let mut args = Cli {
+            string1: "[:upper:]".to_string(),
+            string2: Some("[:lower:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"coding challenge\n");
+        
+    }
+
+    #[test]
+    fn can_translate_space_class(){
+        
+        let line = "coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:space:]".to_string(),
+            string2: Some("_".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"coding_challenge_");
+        
+    }
+
+    #[test]
+    fn can_translate_blank_class(){
+        
+        let line = "coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:blank:]".to_string(),
+            string2: Some("_".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"coding_challenge\n");
+        
+    }
+
+    #[test]
+    fn can_translate_alphanumeric_class(){
+        
+        let line = "123_challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            string2: Some("a".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"aaa_aaaaaaaaa\n");
+        
+    }
+
+    #[test]
+    fn can_translate_alphabetic_class(){
+        
+        let line = "123_challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            string2: Some("a".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"123_aaaaaaaaa\n");
+        
+    }
+
+    #[test]
+    fn can_translate_control_class(){
+        
+        let line = "123\tchallenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:cntrl:]".to_string(),
+            string2: Some(" ".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"123 challenge ");
+        
+    }
+
+    #[test]
+    fn can_translate_digit_class(){
+        
+        let line = "123 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:digit:]".to_string(),
+            string2: Some("a".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"aaa challenge ");
+        
+    }
+
+    #[test]
+    fn can_translate_graphic_class(){
+        
+        let line = "123 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:graph:]".to_string(),
+            string2: Some("1".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"111 111111111\n");
+        
+    }
+
+    #[test]
+    fn can_translate_ideographic_class(){
+        
+        let line = "These are ideographic characters: 相杏衍".to_string();
+
+        let mut args = Cli {
+            string1: "[:ideogram:]".to_string(),
+            string2: Some("x".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"These are ideographic characters: xxx\n");
+        
+    }
+
+    #[test]
+    fn can_translate_print_class(){
+        
+        let line = "\thello world".to_string();
+
+        let mut args = Cli {
+            string1: "[:print:]".to_string(),
+            string2: Some("x".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"\txxxxxxxxxxx\n");
+        
+    }
+
+    #[test]
+    fn can_translate_punctuation_class(){
+        
+        let line = "Wayne's world".to_string();
+
+        let mut args = Cli {
+            string1: "[:punct:]".to_string(),
+            string2: Some("x".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Waynexs world\n");
+        
+    }
+
+    #[test]
+    fn can_translate_valid_char_class(){
+        
+        let line = "hello world".to_string();
+
+        let mut args = Cli {
+            string1: "[:rune:]".to_string(),
+            string2: Some("x".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"xxxxxxxxxxxx");
+        
+    }
+
+    #[test]
+    fn can_translate_xdigit_class(){
+        
+        let line = "1234567890abcdefg".to_string();
+
+        let mut args = Cli {
+            string1: "[:xdigit:]".to_string(),
+            string2: Some("x".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"xxxxxxxxxxxxxxxxg\n");
+        
+    }
+
+    // ************************************************************************
+    // translate tests (Ccu flags)
+    // ************************************************************************
 
 }
