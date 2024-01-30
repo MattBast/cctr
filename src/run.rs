@@ -1,11 +1,10 @@
 use crate::args::Cli;
 use crate::init::Mode;
 
-use anyhow::{Result, Context};
+use anyhow::{Result, Context, anyhow};
 use std::io::{stdin, BufRead, BufReader, IsTerminal, stdout, Write, BufWriter};
 use std::iter::zip;
 use unicode_segmentation::UnicodeSegmentation;
-// use regex::Regex;
 
 /// Translate, delete and/or compress the strings held in `args`. Use `mode` to
 /// decide whether to translate, delete and/or compress. Write the output to stdout.
@@ -57,25 +56,86 @@ fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result
 	let string1 = &mut args.string1;
 	let string2 = &mut args.string2.clone().unwrap();
 
+	// Search for graphemes rather than chars to handle unicode characters like "a̐"
+	let graphemes1 = get_patterns(string1)?;
+	let graphemes2 = get_patterns(string2)?;
+
 	// Make sure both strings are the same length. If not, pad the shorter one
 	// with whitespace chracters
-	string1.extend(vec![""; string2.len()]);
-	string2.extend(vec![string2.chars().last().unwrap(); string1.len()]);
-
-	// Search for graphemes rather than chars to handle unicode characters like "a̐"
-	let graphemes1 = string1.graphemes(true);
-	let graphemes2 = string2.graphemes(true);
+	if graphemes1.len() > graphemes1.len() {
+		graphemes2.resize(graphemes1.len(), Pattern::Char(String::new()));
+	}
+	else {
+		graphemes1.resize(graphemes2.len(), Pattern::Char(String::new()));
+	}
 
 	// Replace all chars found in string1 with the chars found in string2
 	for (char1, char2) in zip(graphemes1, graphemes2) {
-		// let re = Regex::new(char1).unwrap();
-		// line = re.replace_all(&line, char2).to_string();
 		line = line.replace(char1, char2);
-		// line = line.replace(char::is_lowercase, &char1.to_string().to_uppercase());
 	}
 
 	writeln!(writer, "{}", line)
 			.with_context(|| "Unable to write line to writer.".to_string())
+
+}
+
+/// Defines the patterns in string1 and string2 to process
+#[derive(Debug, Clone)]
+pub enum Pattern {
+    Char(String),
+    Alnum,
+    Alpha,
+    Blank,
+    Cntrl,
+    Digit,
+    Graph,
+    Ideogram,
+    Lower,
+    Print,
+    Punct,
+    Rune,
+    Space,
+    Upper
+}
+
+/// Extract graphemes (characters) and classes ready to translate a string by
+fn get_patterns(string: &mut String) -> Result<Vec<Pattern>> {
+
+	// returns a vector of grapheme characters that looks a little like this:
+	// ["z", "[", ":", "x", "d", "i", "g", "i", "t", ":", "]", "a̐"];
+	let graphemes = string.graphemes(true).collect::<Vec<&str>>();
+
+	let mut patterns = Vec::new();
+    
+    let slices = graphemes.split(|c| c == &"[" || c == &"]");
+    
+    for slice in slices {
+        if slice.len() > 1 {
+            let string: String = slice.iter().map(|s| s.to_string()).collect();
+            match string.as_str() {
+            	":alnum:" => patterns.push(Pattern::Alnum),
+            	":alpha:" => patterns.push(Pattern::Alpha),
+                ":blank:" => patterns.push(Pattern::Blank),
+                ":cntrl:" => patterns.push(Pattern::Cntrl),
+                ":digit:" => patterns.push(Pattern::Digit),
+                ":graph:" => patterns.push(Pattern::Graph),
+                ":ideogram:" => patterns.push(Pattern::Ideogram),
+                ":lower:" => patterns.push(Pattern::Lower),
+                ":print:" => patterns.push(Pattern::Print),
+                ":punct:" => patterns.push(Pattern::Punct),
+                ":rune:" => patterns.push(Pattern::Rune),
+                ":space:" => patterns.push(Pattern::Space),
+                ":upper:" => patterns.push(Pattern::Upper),
+            	_ => return Err(anyhow!("Invalid class."))
+            }
+            patterns.push(Pattern::Char(string));
+        }
+        else {
+            patterns.push(Pattern::Char(slice[0].to_string()));
+        }
+    }
+    
+    Ok(patterns)
 
 }
 

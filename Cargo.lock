@@ -152,7 +152,6 @@ dependencies = [
  "log",
  "predicates",
  "proptest",
- "regex",
  "unicode-segmentation",
 ]
 
