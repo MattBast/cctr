@@ -1,102 +1,93 @@
 use crate::args::Cli;
 use crate::init::Mode;
 
-use anyhow::{Result, Context, anyhow};
-use std::io::{stdin, BufRead, BufReader, IsTerminal, stdout, Write, BufWriter};
-use std::iter::zip;
+use anyhow::{anyhow, Context, Result};
 use regex::Regex;
+use std::io::{stdin, stdout, BufRead, BufReader, BufWriter, IsTerminal, Write};
+use std::iter::zip;
 
 /// Translate, delete and/or compress the strings held in `args`. Use `mode` to
 /// decide whether to translate, delete and/or compress. Write the output to stdout.
 pub fn run(args: &mut Cli, mode: &Mode) -> Result<()> {
+    if stdin().is_terminal() {
+        // Request a line of text from the user
+        let mut line = String::new();
+        stdin().read_line(&mut line)?;
 
-	if stdin().is_terminal() {
-		
-		// Request a line of text from the user
-		let mut line = String::new();
-	    stdin().read_line(&mut line)?;
+        process_line(line, args, mode)?;
+    } else {
+        // Read the lines of text received from another cli application
+        let reader = BufReader::new(stdin().lock());
+        reader
+            .lines()
+            .try_for_each(|line| process_line(line?, args, mode))?;
+    }
 
-	    process_line(line, args, mode)?;
-
-	}
-	else {
-		
-		// Read the lines of text received from another cli application
-		let reader = BufReader::new(stdin().lock());
-		reader
-			.lines()
-			.try_for_each(|line| {
-				process_line(line?, args, mode)
-			})?;
-
-	}
-	
-	Ok(())
-
+    Ok(())
 }
 
 /// Translate, delete and/or compress a single line
 fn process_line(line: String, args: &mut Cli, mode: &Mode) -> Result<()> {
-	
-	let mut writer_handle = BufWriter::new(stdout());
+    let mut writer_handle = BufWriter::new(stdout());
 
-	match mode {
-		Mode::Translate => translate(line, args, &mut writer_handle),
-		Mode::Delete => delete(line, args),
-		Mode::Compress => compress(line, args),
-		Mode::DeleteCompress => delete_and_compress(line, args)
-	}
-
+    match mode {
+        Mode::Translate => translate(line, args, &mut writer_handle),
+        Mode::Delete => delete(line, args),
+        Mode::Compress => compress(line, args),
+        Mode::DeleteCompress => delete_and_compress(line, args),
+    }
 }
 
-
+/// Translate the given line using string1 and string2 in the args. Write the translated line
+/// to writer.
 fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()> {
-	
-	// Extract strings from args
-	let string1 = &mut args.string1;
-	let string2 = &mut args.string2.clone().unwrap();
+    // Extract strings from args
+    let string1 = &mut args.string1;
+    let string2 = &mut args.string2.clone().unwrap();
 
-	// Search for graphemes rather than chars to handle unicode characters like "a̐"
-	let mut graphemes1 = get_patterns(string1)?;
-    let mut graphemes2: Vec<char> = string2.chars().collect();
-	// let graphemes2 = get_patterns(string2)?;
+    // Search for graphemes rather than chars to handle unicode characters like "a̐"
+    let mut graphemes1 = get_patterns(string1)?;
+    let mut graphemes2 = get_patterns(string2)?;
 
-	// Make sure both strings are the same length. If not, pad the shorter one
-	// with whitespace chracters
-	if graphemes1.len() > graphemes2.len() {
-		graphemes2.resize(graphemes1.len(), string2.chars().last().unwrap());
-	}
-	else {
-		graphemes1.truncate(graphemes2.len());
-	}
+    // Make sure both strings are the same length. If not, pad the shorter one
+    // with whitespace chracters
+    if graphemes1.len() > graphemes2.len() {
+        graphemes2.resize(graphemes1.len(), graphemes2.last().unwrap().clone());
+    } else {
+        graphemes1.truncate(graphemes2.len());
+    }
 
-	// Replace all chars found in string1 with the chars found in string2
-	for (char1, char2) in zip(graphemes1, graphemes2) {
-		
+    // Replace all chars found in string1 with the chars found in string2
+    for (char1, char2) in zip(graphemes1, graphemes2) {
         line = match char1 {
-            Pattern::Alnum => line.replace(char::is_alphanumeric, &char2.to_string()),
-            Pattern::Alpha => line.replace(char::is_alphabetic, &char2.to_string()),
-            Pattern::Blank => line.replace(char::is_whitespace, &char2.to_string()),
-            Pattern::Cntrl => line.replace(char::is_control, &char2.to_string()),
-            Pattern::Digit => line.replace(char::is_numeric, &char2.to_string()),
-            Pattern::Lower => line.replace(char::is_lowercase, &char2.to_string()),
-            Pattern::Space => line.replace(char::is_whitespace, &char2.to_string()),
-            Pattern::Upper => line.replace(char::is_uppercase, &char2.to_string()),
-            Pattern::Char(c) => line.replace(&c, &char2.to_string())
+            // Pattern::Alnum => line.replace(char::is_alphanumeric, &char2.to_string()),
+            Pattern::Alnum => translate_alphanumerics(line, char2)?,
+            Pattern::Alpha => line.replace(char::is_alphabetic, "a"),
+            Pattern::Blank => line.replace(char::is_whitespace, "a"),
+            Pattern::Cntrl => line.replace(char::is_control, "a"),
+            Pattern::Digit => line.replace(char::is_numeric, "a"),
+            Pattern::Lower => line.replace(char::is_lowercase, "a"),
+            Pattern::Space => line.replace(char::is_whitespace, "a"),
+            Pattern::Upper => line.replace(char::is_uppercase, "a"),
+            Pattern::Char(c) => line.replace(c, "a"), // Pattern::Alpha => line.replace(char::is_alphabetic, &char2.to_string()),
+                                                      // Pattern::Blank => line.replace(char::is_whitespace, &char2.to_string()),
+                                                      // Pattern::Cntrl => line.replace(char::is_control, &char2.to_string()),
+                                                      // Pattern::Digit => line.replace(char::is_numeric, &char2.to_string()),
+                                                      // Pattern::Lower => line.replace(char::is_lowercase, &char2.to_string()),
+                                                      // Pattern::Space => line.replace(char::is_whitespace, &char2.to_string()),
+                                                      // Pattern::Upper => line.replace(char::is_uppercase, &char2.to_string()),
+                                                      // Pattern::Char(c) => line.replace(&c, &char2.to_string())
         }
+    }
 
-	}
-
-	writeln!(writer, "{}", line)
-		.with_context(|| "Unable to write line to writer.".to_string())
-
+    writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
 }
 
 /// Defines the patterns in string1 and string2 to process
 #[derive(Debug, Clone)]
 pub enum Pattern {
     /// Represents a grapheme (character)
-    Char(String),
+    Char(char),
     Alnum,
     Alpha,
     Blank,
@@ -108,66 +99,121 @@ pub enum Pattern {
 }
 
 /// Extract graphemes (characters) and classes ready to translate a string by
-fn get_patterns(string: &mut String) -> Result<Vec<Pattern>> {
-
-	// match patterns that are either words flanked by [::]
+fn get_patterns(string: &mut str) -> Result<Vec<Pattern>> {
+    // match patterns that are either words flanked by [::]
     // or match against single characters
     let re = Regex::new(r"\[:([^:]+):]|.")?;
     let str_patterns: Vec<&str> = re.find_iter(string).map(|m| m.as_str()).collect();
-	
+
     // start a vector to hold the patterns in
     let mut patterns = Vec::new();
-    
+
     // loop through the patterns and parse each pattern into a Pattern type
     for str_pattern in str_patterns {
-        
         if str_pattern.len() > 1 {
-            
             match str_pattern {
-            	"[:alnum:]" => patterns.push(Pattern::Alnum),
-            	"[:alpha:]" => patterns.push(Pattern::Alpha),
+                "[:alnum:]" => patterns.push(Pattern::Alnum),
+                "[:alpha:]" => patterns.push(Pattern::Alpha),
                 "[:blank:]" => patterns.push(Pattern::Blank),
                 "[:cntrl:]" => patterns.push(Pattern::Cntrl),
                 "[:digit:]" => patterns.push(Pattern::Digit),
                 "[:lower:]" => patterns.push(Pattern::Lower),
                 "[:space:]" => patterns.push(Pattern::Space),
                 "[:upper:]" => patterns.push(Pattern::Upper),
-            	_ => return Err(anyhow!("Invalid class."))
+                _ => return Err(anyhow!("Invalid class.")),
             }
-
+        } else {
+            patterns.push(Pattern::Char(str_pattern.chars().next().unwrap()));
         }
-        else {
-            patterns.push(Pattern::Char(str_pattern.to_string()));
-        }
-
     }
-    
-    Ok(patterns)
 
+    Ok(patterns)
 }
 
+/// Translate the alphanumeric characters
+fn translate_alphanumerics(mut line: String, pattern: Pattern) -> Result<String> {
+    line = match pattern {
+        Pattern::Alnum => line,
+        Pattern::Alpha => line
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() {
+                    char::from_u32((c as u32) + 10).unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Blank => line
+            .chars()
+            .map(|c| if c.is_alphanumeric() { ' ' } else { c })
+            .collect(),
+        Pattern::Cntrl => line
+            .chars()
+            .map(|c| if c.is_alphanumeric() { ' ' } else { c })
+            .collect(),
+        Pattern::Digit => line
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() & !c.is_ascii_digit() {
+                    '9'
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Lower => line
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() {
+                    c.to_lowercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Space => line
+            .chars()
+            .map(|c| if c.is_alphanumeric() { ' ' } else { c })
+            .collect(),
+        Pattern::Upper => line
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() {
+                    c.to_uppercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Char(new_c) => line
+            .chars()
+            .map(|c| if c.is_alphanumeric() { new_c } else { c })
+            .collect(),
+    };
+
+    Ok(line)
+}
 
 fn delete(line: String, args: &Cli) -> Result<()> {
-	println!("Delete");
-	println!("{:?}", line);
-	println!("{:?}", args);
-	Ok(())
+    println!("Delete");
+    println!("{:?}", line);
+    println!("{:?}", args);
+    Ok(())
 }
-
 
 fn compress(line: String, args: &Cli) -> Result<()> {
-	println!("Compress");
-	println!("{:?}", line);
-	println!("{:?}", args);
-	Ok(())
+    println!("Compress");
+    println!("{:?}", line);
+    println!("{:?}", args);
+    Ok(())
 }
 
-
 fn delete_and_compress(line: String, args: &Cli) -> Result<()> {
-	println!("Delete and Compress");
-	println!("{:?}", line);
-	println!("{:?}", args);
-	Ok(())
+    println!("Delete and Compress");
+    println!("{:?}", line);
+    println!("{:?}", args);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -179,8 +225,7 @@ mod tests {
     // ************************************************************************
 
     #[test]
-    fn can_translate_single_letters(){
-        
+    fn can_translate_single_letters() {
         let line = "coding challenge".to_string();
 
         let mut args = Cli {
@@ -195,12 +240,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding Challenge\n");
-        
     }
 
     #[test]
-    fn can_translate_letter_to_number(){
-        
+    fn can_translate_letter_to_number() {
         let line = "coding challenge".to_string();
 
         let mut args = Cli {
@@ -215,12 +258,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"3oding 3hallenge\n");
-        
     }
 
     #[test]
-    fn can_translate_empty_line(){
-        
+    fn can_translate_empty_line() {
         let line = "".to_string();
 
         let mut args = Cli {
@@ -235,12 +276,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"\n");
-        
     }
 
     #[test]
-    fn can_translate_many_letters(){
-        
+    fn can_translate_many_letters() {
         let line = "coding challenge".to_string();
 
         let mut args = Cli {
@@ -255,12 +294,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"CODing Challenge\n");
-        
     }
 
     #[test]
-    fn string1_can_be_longer_than_string2(){
-        
+    fn string1_can_be_longer_than_string2() {
         let line = "coding challenge".to_string();
 
         let mut args = Cli {
@@ -275,12 +312,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"CCCing Challenge\n");
-        
     }
 
     #[test]
-    fn string2_can_be_longer_than_string1(){
-        
+    fn string2_can_be_longer_than_string1() {
         let line = "coding challenge".to_string();
 
         let mut args = Cli {
@@ -295,12 +330,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding Challenge\n");
-        
     }
 
     #[test]
-    fn can_translate_single_letters_across_multiple_lines(){
-        
+    fn can_translate_single_letters_across_multiple_lines() {
         let line1 = "coding challenge".to_string();
         let line2 = "abcabcabc".to_string();
         let line3 = "come as you are".to_string();
@@ -328,12 +361,10 @@ mod tests {
         let result = translate(line3, &mut args, &mut writer);
         assert!(result.is_ok());
         assert_eq!(writer, b"Come as you are\n");
-        
     }
 
     #[test]
-    fn string1_can_be_longer_than_string2_with_two_lines(){
-        
+    fn string1_can_be_longer_than_string2_with_two_lines() {
         let line1 = "coding challenge".to_string();
         let line2 = "coding challenge".to_string();
 
@@ -354,12 +385,10 @@ mod tests {
         let result = translate(line2, &mut args, &mut writer);
         assert!(result.is_ok());
         assert_eq!(writer, b"CCCing Challenge\n");
-        
     }
 
     #[test]
-    fn can_translate_special_characters(){
-        
+    fn can_translate_special_characters() {
         let line = "{coding challenge}".to_string();
 
         let mut args = Cli {
@@ -374,7 +403,6 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"[coding challenge]\n");
-        
     }
 
     // ************************************************************************
@@ -382,8 +410,7 @@ mod tests {
     // ************************************************************************
 
     #[test]
-    fn can_translate_lower_to_upper_class(){
-        
+    fn can_translate_lower_to_upper_class() {
         let line = "coding challenge".to_string();
 
         let mut args = Cli {
@@ -398,12 +425,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"CODING CHALLENGE\n");
-        
     }
 
     #[test]
-    fn can_translate_upper_to_lower_class(){
-        
+    fn can_translate_upper_to_lower_class() {
         let line = "CODING CHALLENGE".to_string();
 
         let mut args = Cli {
@@ -418,12 +443,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"coding challenge\n");
-        
     }
 
     #[test]
-    fn can_translate_space_class(){
-        
+    fn can_translate_space_class() {
         let line = "coding challenge".to_string();
 
         let mut args = Cli {
@@ -438,12 +461,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"coding_challenge\n");
-        
     }
 
     #[test]
-    fn can_translate_blank_class(){
-        
+    fn can_translate_blank_class() {
         let line = "coding challenge".to_string();
 
         let mut args = Cli {
@@ -458,12 +479,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"coding_challenge\n");
-        
     }
 
     #[test]
-    fn can_translate_alphanumeric_class(){
-        
+    fn can_translate_alphanumeric_class() {
         let line = "123_challenge".to_string();
 
         let mut args = Cli {
@@ -478,12 +497,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"aaa_aaaaaaaaa\n");
-        
     }
 
     #[test]
-    fn can_translate_alphabetic_class(){
-        
+    fn can_translate_alphabetic_class() {
         let line = "123_challenge".to_string();
 
         let mut args = Cli {
@@ -498,12 +515,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"123_aaaaaaaaa\n");
-        
     }
 
     #[test]
-    fn can_translate_control_class(){
-        
+    fn can_translate_control_class() {
         let line = "123\tchallenge".to_string();
 
         let mut args = Cli {
@@ -518,12 +533,10 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"123 challenge\n");
-        
     }
 
     #[test]
-    fn can_translate_digit_class(){
-        
+    fn can_translate_digit_class() {
         let line = "123 challenge".to_string();
 
         let mut args = Cli {
@@ -538,11 +551,135 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"aaa challenge\n");
-        
+    }
+
+    #[test]
+    fn can_translate_alphanumeric_to_alphabetic() {
+        let line = "coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            string2: Some("[:alpha:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"mynsxq mrkvvoxqo\n");
+    }
+
+    #[test]
+    fn can_translate_alphanumeric_to_blank() {
+        let line = "coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            string2: Some("[:blank:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"                \n");
+    }
+
+    #[test]
+    fn can_translate_alphanumeric_to_control_character() {
+        let line = "coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            string2: Some("[:cntrl:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"                \n");
+    }
+
+    #[test]
+    fn can_translate_alphanumeric_to_digit() {
+        let line = "1oding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            string2: Some("[:digit:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"199999 999999999\n");
+    }
+
+    #[test]
+    fn can_translate_alphanumeric_to_lower() {
+        let line = "Coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            string2: Some("[:lower:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"coding challenge\n");
+    }
+
+    #[test]
+    fn can_translate_alphanumeric_to_space() {
+        let line = "coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            string2: Some("[:space:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"                \n");
+    }
+
+    #[test]
+    fn can_translate_alphanumeric_to_upper() {
+        let line = "Coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            string2: Some("[:upper:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"CODING CHALLENGE\n");
     }
 
     // ************************************************************************
     // translate tests (Ccu flags)
     // ************************************************************************
-
 }

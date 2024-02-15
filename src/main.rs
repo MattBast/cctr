@@ -1,8 +1,7 @@
-use anyhow::{Result};
+use anyhow::Result;
 use clap::Parser;
-use std::process::exit;
 use log::error;
-
+use std::process::exit;
 
 fn main() -> Result<()> {
     // Get the args from the command line.

@@ -1,5 +1,5 @@
 use crate::args::Cli;
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 /// Defines the different modes that the application can be run in.
 #[derive(Debug)]
@@ -17,29 +17,23 @@ pub enum Mode {
 
 /// Decide what mode to run the application in
 pub fn init(args: &Cli) -> Result<Mode> {
-
-
-    if args.string2 == None && args.delete && !args.squeeze {
+    if args.string2.is_none() && args.delete && !args.squeeze {
         Ok(Mode::Delete)
-    }
-    else if args.string2 == None && !args.delete && args.squeeze {
+    } else if args.string2.is_none() && !args.delete && args.squeeze {
         Ok(Mode::Compress)
-    }
-    else if args.string2 != None && !args.delete {
+    } else if args.string2.is_some() && !args.delete {
         Ok(Mode::Translate)
-    }
-    else if args.string2 != None && args.delete && args.squeeze {
+    } else if args.string2.is_some() && args.delete && args.squeeze {
         Ok(Mode::DeleteCompress)
-    }
-    else {
-        Err(anyhow!("usage: 
+    } else {
+        Err(anyhow!(
+            "usage: 
             tr [-Ccsu] string1 string2
             tr [-Ccu] -d string1
             tr [-Ccu] -s string1
             tr [-Ccu] -ds string1 string2"
         ))
     }
-
 }
 
 #[cfg(test)]
@@ -51,8 +45,7 @@ mod tests {
     // ************************************************************************
 
     #[test]
-    fn can_run_in_translate_mode(){
-        
+    fn can_run_in_translate_mode() {
         let args = Cli {
             complement1: false,
             complement2: false,
@@ -60,18 +53,16 @@ mod tests {
             squeeze: false,
             unbuffered: false,
             string1: "c".to_string(),
-            string2: Some("C".to_string())
+            string2: Some("C".to_string()),
         };
 
         let mode = init(&args).unwrap();
 
         assert!(matches!(mode, Mode::Translate));
-        
     }
 
     #[test]
-    fn can_use_the_capital_c_flag_in_translate_mode(){
-        
+    fn can_use_the_capital_c_flag_in_translate_mode() {
         let args = Cli {
             complement1: true,
             complement2: false,
@@ -79,18 +70,16 @@ mod tests {
             squeeze: false,
             unbuffered: false,
             string1: "c".to_string(),
-            string2: Some("C".to_string())
+            string2: Some("C".to_string()),
         };
 
         let mode = init(&args).unwrap();
 
         assert!(matches!(mode, Mode::Translate));
-        
     }
 
     #[test]
-    fn can_use_the_c_flag_in_translate_mode(){
-        
+    fn can_use_the_c_flag_in_translate_mode() {
         let args = Cli {
             complement1: false,
             complement2: true,
@@ -98,18 +87,16 @@ mod tests {
             squeeze: false,
             unbuffered: false,
             string1: "c".to_string(),
-            string2: Some("C".to_string())
+            string2: Some("C".to_string()),
         };
 
         let mode = init(&args).unwrap();
 
         assert!(matches!(mode, Mode::Translate));
-        
     }
 
     #[test]
-    fn can_use_the_s_flag_in_translate_mode(){
-        
+    fn can_use_the_s_flag_in_translate_mode() {
         let args = Cli {
             complement1: false,
             complement2: false,
@@ -117,18 +104,16 @@ mod tests {
             squeeze: true,
             unbuffered: false,
             string1: "c".to_string(),
-            string2: Some("C".to_string())
+            string2: Some("C".to_string()),
         };
 
         let mode = init(&args).unwrap();
 
         assert!(matches!(mode, Mode::Translate));
-        
     }
 
     #[test]
-    fn can_use_the_u_flag_in_translate_mode(){
-        
+    fn can_use_the_u_flag_in_translate_mode() {
         let args = Cli {
             complement1: false,
             complement2: false,
@@ -136,7 +121,7 @@ mod tests {
             squeeze: false,
             unbuffered: true,
             string1: "c".to_string(),
-            string2: Some("C".to_string())
+            string2: Some("C".to_string()),
         };
 
         let mode = init(&args).unwrap();
@@ -145,8 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn can_use_the_ccsu_flags_in_translate_mode(){
-        
+    fn can_use_the_ccsu_flags_in_translate_mode() {
         let args = Cli {
             complement1: true,
             complement2: true,
@@ -154,13 +138,12 @@ mod tests {
             squeeze: true,
             unbuffered: true,
             string1: "c".to_string(),
-            string2: Some("C".to_string())
+            string2: Some("C".to_string()),
         };
 
         let mode = init(&args).unwrap();
 
         assert!(matches!(mode, Mode::Translate));
-        
     }
 
     // ************************************************************************
@@ -168,8 +151,7 @@ mod tests {
     // ************************************************************************
 
     #[test]
-    fn can_run_in_delete_mode(){
-        
+    fn can_run_in_delete_mode() {
         let args = Cli {
             complement1: false,
             complement2: false,
@@ -177,18 +159,16 @@ mod tests {
             squeeze: false,
             unbuffered: false,
             string1: "c".to_string(),
-            string2: None
+            string2: None,
         };
 
         let mode = init(&args).unwrap();
 
         assert!(matches!(mode, Mode::Delete));
-        
     }
 
     #[test]
-    fn can_run_in_delete_mode_with_ccu_flags(){
-        
+    fn can_run_in_delete_mode_with_ccu_flags() {
         let args = Cli {
             complement1: true,
             complement2: true,
@@ -196,18 +176,16 @@ mod tests {
             squeeze: false,
             unbuffered: true,
             string1: "c".to_string(),
-            string2: None
+            string2: None,
         };
 
         let mode = init(&args).unwrap();
 
         assert!(matches!(mode, Mode::Delete));
-        
     }
 
     #[test]
-    fn two_string_with_just_the_delete_flag_return_error(){
-        
+    fn two_string_with_just_the_delete_flag_return_error() {
         let args = Cli {
             complement1: false,
             complement2: false,
@@ -215,7 +193,7 @@ mod tests {
             squeeze: false,
             unbuffered: false,
             string1: "c".to_string(),
-            string2: Some("C".to_string())
+            string2: Some("C".to_string()),
         };
 
         let res = init(&args);
@@ -224,19 +202,18 @@ mod tests {
 
         let error = res.unwrap_err();
         let root_cause = error.root_cause();
-        assert_eq!(format!("{}", root_cause), "usage: 
+        assert_eq!(
+            format!("{}", root_cause),
+            "usage: 
             tr [-Ccsu] string1 string2
             tr [-Ccu] -d string1
             tr [-Ccu] -s string1
             tr [-Ccu] -ds string1 string2"
         );
-        
     }
 
-
     #[test]
-    fn one_string_and_no_d_or_s_flag_returns_error(){
-        
+    fn one_string_and_no_d_or_s_flag_returns_error() {
         let args = Cli {
             complement1: false,
             complement2: false,
@@ -244,7 +221,7 @@ mod tests {
             squeeze: false,
             unbuffered: false,
             string1: "c".to_string(),
-            string2: None
+            string2: None,
         };
 
         let res = init(&args);
@@ -253,18 +230,18 @@ mod tests {
 
         let error = res.unwrap_err();
         let root_cause = error.root_cause();
-        assert_eq!(format!("{}", root_cause), "usage: 
+        assert_eq!(
+            format!("{}", root_cause),
+            "usage: 
             tr [-Ccsu] string1 string2
             tr [-Ccu] -d string1
             tr [-Ccu] -s string1
             tr [-Ccu] -ds string1 string2"
         );
-        
     }
 
     #[test]
-    fn one_string_and_flag_that_is_not_d_or_s_returns_error(){
-        
+    fn one_string_and_flag_that_is_not_d_or_s_returns_error() {
         let args = Cli {
             complement1: true,
             complement2: false,
@@ -272,7 +249,7 @@ mod tests {
             squeeze: false,
             unbuffered: false,
             string1: "c".to_string(),
-            string2: None
+            string2: None,
         };
 
         let res = init(&args);
@@ -281,18 +258,18 @@ mod tests {
 
         let error = res.unwrap_err();
         let root_cause = error.root_cause();
-        assert_eq!(format!("{}", root_cause), "usage: 
+        assert_eq!(
+            format!("{}", root_cause),
+            "usage: 
             tr [-Ccsu] string1 string2
             tr [-Ccu] -d string1
             tr [-Ccu] -s string1
             tr [-Ccu] -ds string1 string2"
         );
-        
     }
 
     #[test]
-    fn adding_all_flags_and_only_one_string_returns_error(){
-        
+    fn adding_all_flags_and_only_one_string_returns_error() {
         let args = Cli {
             complement1: true,
             complement2: true,
@@ -300,7 +277,7 @@ mod tests {
             squeeze: true,
             unbuffered: true,
             string1: "c".to_string(),
-            string2: None
+            string2: None,
         };
 
         let res = init(&args);
@@ -309,13 +286,14 @@ mod tests {
 
         let error = res.unwrap_err();
         let root_cause = error.root_cause();
-        assert_eq!(format!("{}", root_cause), "usage: 
+        assert_eq!(
+            format!("{}", root_cause),
+            "usage: 
             tr [-Ccsu] string1 string2
             tr [-Ccu] -d string1
             tr [-Ccu] -s string1
             tr [-Ccu] -ds string1 string2"
         );
-        
     }
 
     // ************************************************************************
@@ -323,8 +301,7 @@ mod tests {
     // ************************************************************************
 
     #[test]
-    fn can_run_in_compress_mode(){
-        
+    fn can_run_in_compress_mode() {
         let args = Cli {
             complement1: false,
             complement2: false,
@@ -332,13 +309,12 @@ mod tests {
             squeeze: true,
             unbuffered: false,
             string1: "c".to_string(),
-            string2: None
+            string2: None,
         };
 
         let mode = init(&args).unwrap();
 
         assert!(matches!(mode, Mode::Compress));
-        
     }
 
     // ************************************************************************
@@ -346,8 +322,7 @@ mod tests {
     // ************************************************************************
 
     #[test]
-    fn can_run_in_delete_and_compress_mode(){
-        
+    fn can_run_in_delete_and_compress_mode() {
         let args = Cli {
             complement1: true,
             complement2: true,
@@ -355,13 +330,11 @@ mod tests {
             squeeze: true,
             unbuffered: true,
             string1: "c".to_string(),
-            string2: Some("C".to_string())
+            string2: Some("C".to_string()),
         };
 
         let mode = init(&args).unwrap();
 
         assert!(matches!(mode, Mode::DeleteCompress));
-        
     }
-    
 }

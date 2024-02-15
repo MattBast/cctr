@@ -10,12 +10,11 @@ use clap::Parser;
     long_about = None
 )]
 pub struct Cli {
-
-    /// Complement the set of characters in string1, that is “-C ab” includes 
+    /// Complement the set of characters in string1, that is “-C ab” includes
     /// every character except for ‘a’ and ‘b’.
     #[arg(short = 'C')]
     pub complement1: bool,
-    
+
     /// Same as -C but complement the set of values in string1.
     #[arg(short)]
     pub complement2: bool,
@@ -24,9 +23,9 @@ pub struct Cli {
     #[arg(short)]
     pub delete: bool,
 
-    /// Squeeze multiple occurrences of the characters listed in the last 
-    /// operand (either string1 or string2) in the input into a single instance 
-    /// of the character. This occurs after all deletion and translation is 
+    /// Squeeze multiple occurrences of the characters listed in the last
+    /// operand (either string1 or string2) in the input into a single instance
+    /// of the character. This occurs after all deletion and translation is
     /// completed.
     #[arg(short)]
     pub squeeze: bool,
@@ -46,11 +45,10 @@ pub struct Cli {
 
 /// Make sure that the string arguments are not empty
 fn not_empty(arg: &str) -> Result<String, String> {
-    
     let s: String = arg
         .parse()
         .map_err(|_| format!("`{arg}` is not a string."))?;
-    
+
     if s.is_empty() {
         Err(format!("{s} contains no characters"))
     } else {

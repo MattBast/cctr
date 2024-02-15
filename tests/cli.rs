@@ -1,6 +1,5 @@
 /// These tests check that the app can be run from the command line (cli)
 /// with the required combination of arguments.
-
 use anyhow::Result;
 use assert_cmd::prelude::*;
 use std::process::Command;
@@ -11,116 +10,92 @@ use std::process::Command;
 
 #[test]
 fn can_run_in_translate_mode() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c
-	cmd.arg("c").arg("C");
+    // add the arg c
+    cmd.arg("c").arg("C");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn can_use_the_capital_c_flag_in_translate_mode() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add two args and the s flag
-	cmd.arg("-C").arg("c").arg("C");
+    // add two args and the s flag
+    cmd.arg("-C").arg("c").arg("C");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn can_use_the_c_flag_in_translate_mode() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add two args and the s flag
-	cmd.arg("-c").arg("c").arg("C");
+    // add two args and the s flag
+    cmd.arg("-c").arg("c").arg("C");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn can_use_the_s_flag_in_translate_mode() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add two args and the s flag
-	cmd.arg("-s").arg("c").arg("C");
+    // add two args and the s flag
+    cmd.arg("-s").arg("c").arg("C");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn can_use_the_u_flag_in_translate_mode() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add two args and the s flag
-	cmd.arg("-u").arg("c").arg("C");
+    // add two args and the s flag
+    cmd.arg("-u").arg("c").arg("C");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn can_use_the_ccsu_flags_in_translate_mode() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add two args and the s flag
-	cmd.arg("-Ccsu").arg("c").arg("C");
+    // add two args and the s flag
+    cmd.arg("-Ccsu").arg("c").arg("C");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 // ************************************************************************
@@ -129,117 +104,92 @@ fn can_use_the_ccsu_flags_in_translate_mode() -> Result<()> {
 
 #[test]
 fn can_run_in_delete_mode() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c plus the d flag
-	cmd.arg("-d").arg("c");
+    // add the arg c plus the d flag
+    cmd.arg("-d").arg("c");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn can_run_in_delete_mode_with_ccu_flags() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c plus the d flag
-	cmd.arg("-Ccud").arg("c");
+    // add the arg c plus the d flag
+    cmd.arg("-Ccud").arg("c");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn two_string_with_just_the_delete_flag_return_error() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add two args and the d flag
-	cmd.arg("-d").arg("c").arg("C");
+    // add two args and the d flag
+    cmd.arg("-d").arg("c").arg("C");
 
-	// make sure the function is a failure and returns a misuse of shell exit code
-	cmd.assert()
-		.failure()
-		.code(2);
+    // make sure the function is a failure and returns a misuse of shell exit code
+    cmd.assert().failure().code(2);
 
-	Ok(())
-	
+    Ok(())
 }
-
 
 #[test]
 fn one_string_and_no_d_or_s_flag_returns_error() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c
-	cmd.arg("c");
+    // add the arg c
+    cmd.arg("c");
 
-	// make sure the function is a failure and returns a misuse of shell exit code
-	cmd.assert()
-		.failure()
-		.code(2);
+    // make sure the function is a failure and returns a misuse of shell exit code
+    cmd.assert().failure().code(2);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn one_string_and_flag_that_is_not_d_or_s_returns_error() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c and the second arg C
-	cmd.arg("-C").arg("c");
+    // add the arg c and the second arg C
+    cmd.arg("-C").arg("c");
 
-	// make sure the function is a failure and returns a misuse of shell exit code
-	cmd.assert()
-		.failure()
-		.code(2);
+    // make sure the function is a failure and returns a misuse of shell exit code
+    cmd.assert().failure().code(2);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn adding_all_flags_and_only_one_string_returns_error() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c plus all five flags
-	cmd.arg("-Ccsud").arg("c");
+    // add the arg c plus all five flags
+    cmd.arg("-Ccsud").arg("c");
 
-	// make sure the function is a failure and returns a misuse of shell exit code
-	cmd.assert()
-		.failure()
-		.code(2);
+    // make sure the function is a failure and returns a misuse of shell exit code
+    cmd.assert().failure().code(2);
 
-	Ok(())
-	
+    Ok(())
 }
 
 // ************************************************************************
@@ -248,21 +198,17 @@ fn adding_all_flags_and_only_one_string_returns_error() -> Result<()> {
 
 #[test]
 fn can_run_in_compress_mode() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c plus the s flag
-	cmd.arg("-s").arg("c");
+    // add the arg c plus the s flag
+    cmd.arg("-s").arg("c");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 // ************************************************************************
@@ -271,21 +217,17 @@ fn can_run_in_compress_mode() -> Result<()> {
 
 #[test]
 fn can_run_in_delete_and_compress_mode() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c plus all five flags
-	cmd.arg("-Ccsud").arg("c").arg("C");
+    // add the arg c plus all five flags
+    cmd.arg("-Ccsud").arg("c").arg("C");
 
-	// make sure the function is successful and returns an ok exit code
-	cmd.assert()
-		.success()
-		.code(0);
+    // make sure the function is successful and returns an ok exit code
+    cmd.assert().success().code(0);
 
-	Ok(())
-	
+    Ok(())
 }
 
 // ************************************************************************
@@ -294,57 +236,45 @@ fn can_run_in_delete_and_compress_mode() -> Result<()> {
 
 #[test]
 fn running_with_three_string_args_returns_error() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c
-	cmd.arg("c").arg("C").arg("a");
+    // add the arg c
+    cmd.arg("c").arg("C").arg("a");
 
-	// make sure the function is a failure and returns a misuse of shell exit code
-	cmd.assert()
-		.failure()
-		.code(2);
+    // make sure the function is a failure and returns a misuse of shell exit code
+    cmd.assert().failure().code(2);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn running_with_unknown_flag_returns_error() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the arg c
-	cmd.arg("-a").arg("C");
+    // add the arg c
+    cmd.arg("-a").arg("C");
 
-	// make sure the function is a failure and returns a misuse of shell exit code
-	cmd.assert()
-		.failure()
-		.code(2);
+    // make sure the function is a failure and returns a misuse of shell exit code
+    cmd.assert().failure().code(2);
 
-	Ok(())
-	
+    Ok(())
 }
 
 #[test]
 fn running_with_an_empty_string_returns_error() -> Result<()> {
-	
-	// load the main function in the binary file and run the
-	// built version of it
-	let mut cmd = Command::cargo_bin("cctr")?;
+    // load the main function in the binary file and run the
+    // built version of it
+    let mut cmd = Command::cargo_bin("cctr")?;
 
-	// add the empty string arg
-	cmd.arg("");
+    // add the empty string arg
+    cmd.arg("");
 
-	// make sure the function is a failure and returns a misuse of shell exit code
-	cmd.assert()
-		.failure()
-		.code(2);
+    // make sure the function is a failure and returns a misuse of shell exit code
+    cmd.assert().failure().code(2);
 
-	Ok(())
-	
+    Ok(())
 }
