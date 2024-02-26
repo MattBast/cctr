@@ -66,9 +66,9 @@ fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result
             Pattern::Blank => translate_blank(line, char2)?,
             Pattern::Cntrl => translate_control(line, char2)?,
             Pattern::Digit => translate_digit(line, char2)?,
-            Pattern::Lower => line.replace(char::is_lowercase, "a"),  // not done
+            Pattern::Lower => translate_lowercase(line, char2)?,
             Pattern::Space => translate_blank(line, char2)?,
-            Pattern::Upper => line.replace(char::is_uppercase, "a"),  // not done
+            Pattern::Upper => translate_uppercase(line, char2)?,
             Pattern::Char(c) => translate_char(line, c, char2)?,
         }
     }
@@ -353,6 +353,150 @@ fn translate_digit(mut line: String, pattern: Pattern) -> Result<String> {
         Pattern::Char(new_c) => line
             .chars()
             .map(|c| if c.is_numeric() { new_c } else { c })
+            .collect(),
+    };
+
+    Ok(line)
+}
+
+/// Translate the lowercase characters into the given pattern
+fn translate_lowercase(mut line: String, pattern: Pattern) -> Result<String> {
+    line = match pattern {
+        Pattern::Alnum => line
+            .chars()
+            .map(|c| {
+                if c.is_lowercase() {
+                    char::from_u32((c as u32) - 49).unwrap()
+                }
+                else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Alpha => line
+            .chars()
+            .map(|c| {
+                if c.is_lowercase() {
+                    c.to_uppercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Blank => line
+            .chars()
+            .map(|c| if c.is_lowercase() { ' ' } else { c })
+            .collect(),
+        Pattern::Cntrl => line
+            .chars()
+            .map(|c| if c.is_lowercase() { ' ' } else { c })
+            .collect(),
+        Pattern::Digit => line
+            .chars()
+            .map(|c| {
+                if c.is_lowercase() {
+                    if c as u32 <= 48 {
+                        char::from_u32((c as u32) - 49).unwrap()    
+                    }
+                    else {
+                        '9'
+                    }
+                }
+                else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Lower => line,
+        Pattern::Space => line
+            .chars()
+            .map(|c| if c.is_lowercase() { ' ' } else { c })
+            .collect(),
+        Pattern::Upper => line
+            .chars()
+            .map(|c| {
+                if c.is_lowercase() {
+                    c.to_uppercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Char(new_c) => line
+            .chars()
+            .map(|c| if c.is_lowercase() { new_c } else { c })
+            .collect(),
+    };
+
+    Ok(line)
+}
+
+/// Translate the lowercase characters into the given pattern
+fn translate_uppercase(mut line: String, pattern: Pattern) -> Result<String> {
+    line = match pattern {
+        Pattern::Alnum => line
+            .chars()
+            .map(|c| {
+                if c.is_uppercase() {
+                    char::from_u32((c as u32) - 49).unwrap()
+                }
+                else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Alpha => line
+            .chars()
+            .map(|c| {
+                if c.is_uppercase() {
+                    c.to_uppercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Blank => line
+            .chars()
+            .map(|c| if c.is_uppercase() { ' ' } else { c })
+            .collect(),
+        Pattern::Cntrl => line
+            .chars()
+            .map(|c| if c.is_uppercase() { ' ' } else { c })
+            .collect(),
+        Pattern::Digit => line
+            .chars()
+            .map(|c| {
+                if c.is_uppercase() {
+                    if c as u32 <= 48 {
+                        char::from_u32((c as u32) - 49).unwrap()    
+                    }
+                    else {
+                        '9'
+                    }
+                }
+                else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Lower => line
+            .chars()
+            .map(|c| {
+                if c.is_uppercase() {
+                    c.to_lowercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Space => line
+            .chars()
+            .map(|c| if c.is_uppercase() { ' ' } else { c })
+            .collect(),
+        Pattern::Upper => line,
+        Pattern::Char(new_c) => line
+            .chars()
+            .map(|c| if c.is_uppercase() { new_c } else { c })
             .collect(),
     };
 
