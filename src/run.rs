@@ -69,14 +69,14 @@ fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result
             Pattern::Lower => line.replace(char::is_lowercase, "a"),
             Pattern::Space => line.replace(char::is_whitespace, "a"),
             Pattern::Upper => line.replace(char::is_uppercase, "a"),
-            Pattern::Char(c) => line.replace(c, "a"), // Pattern::Alpha => line.replace(char::is_alphabetic, &char2.to_string()),
-                                                      // Pattern::Blank => line.replace(char::is_whitespace, &char2.to_string()),
-                                                      // Pattern::Cntrl => line.replace(char::is_control, &char2.to_string()),
-                                                      // Pattern::Digit => line.replace(char::is_numeric, &char2.to_string()),
-                                                      // Pattern::Lower => line.replace(char::is_lowercase, &char2.to_string()),
-                                                      // Pattern::Space => line.replace(char::is_whitespace, &char2.to_string()),
-                                                      // Pattern::Upper => line.replace(char::is_uppercase, &char2.to_string()),
-                                                      // Pattern::Char(c) => line.replace(&c, &char2.to_string())
+            Pattern::Char(c) => translate_char(line, c, char2)?, // Pattern::Alpha => line.replace(char::is_alphabetic, &char2.to_string()),
+                                                                 // Pattern::Blank => line.replace(char::is_whitespace, &char2.to_string()),
+                                                                 // Pattern::Cntrl => line.replace(char::is_control, &char2.to_string()),
+                                                                 // Pattern::Digit => line.replace(char::is_numeric, &char2.to_string()),
+                                                                 // Pattern::Lower => line.replace(char::is_lowercase, &char2.to_string()),
+                                                                 // Pattern::Space => line.replace(char::is_whitespace, &char2.to_string()),
+                                                                 // Pattern::Upper => line.replace(char::is_uppercase, &char2.to_string()),
+                                                                 // Pattern::Char(c) => line.replace(&c, &char2.to_string())
         }
     }
 
@@ -190,6 +190,59 @@ fn translate_alphanumerics(mut line: String, pattern: Pattern) -> Result<String>
             .chars()
             .map(|c| if c.is_alphanumeric() { new_c } else { c })
             .collect(),
+    };
+
+    Ok(line)
+}
+
+/// Translate a character (pattern1) into pattern2
+fn translate_char(mut line: String, pattern1: char, pattern2: Pattern) -> Result<String> {
+    line = match pattern2 {
+        Pattern::Alnum => line
+            .chars()
+            .map(|c| if c == pattern1 { '0' } else { c })
+            .collect(),
+        Pattern::Alpha => line
+            .chars()
+            .map(|c| if c == pattern1 { 'A' } else { c })
+            .collect(),
+        Pattern::Blank => line
+            .chars()
+            .map(|c| if c == pattern1 { ' ' } else { c })
+            .collect(),
+        Pattern::Cntrl => line
+            .chars()
+            .map(|c| if c == pattern1 { ' ' } else { c })
+            .collect(),
+        Pattern::Digit => line
+            .chars()
+            .map(|c| if c == pattern1 { '0' } else { c })
+            .collect(),
+        Pattern::Lower => line
+            .chars()
+            .map(|c| {
+                if c == pattern1 {
+                    c.to_lowercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Space => line
+            .chars()
+            .map(|c| if c == pattern1 { ' ' } else { c })
+            .collect(),
+        Pattern::Upper => line
+            .chars()
+            .map(|c| {
+                if c == pattern1 {
+                    c.to_uppercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Char(new_c) => line.replace(pattern1, &new_c.to_string()),
     };
 
     Ok(line)
