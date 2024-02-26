@@ -62,7 +62,7 @@ fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result
         line = match char1 {
             // Pattern::Alnum => line.replace(char::is_alphanumeric, &char2.to_string()),
             Pattern::Alnum => translate_alphanumerics(line, char2)?,
-            Pattern::Alpha => line.replace(char::is_alphabetic, "a"), // not done
+            Pattern::Alpha => translate_alphabetic(line, char2)?,
             Pattern::Blank => translate_blank(line, char2)?,
             Pattern::Cntrl => translate_control(line, char2)?,
             Pattern::Digit => translate_digit(line, char2)?,
@@ -182,6 +182,71 @@ fn translate_alphanumerics(mut line: String, pattern: Pattern) -> Result<String>
         Pattern::Char(new_c) => line
             .chars()
             .map(|c| if c.is_alphanumeric() { new_c } else { c })
+            .collect(),
+    };
+
+    Ok(line)
+}
+
+/// Translate the alphabetic characters
+fn translate_alphabetic(mut line: String, pattern: Pattern) -> Result<String> {
+    line = match pattern {
+        Pattern::Alnum => line
+            .chars()
+            .map(|c| {
+                if c.is_alphabetic() {
+                    char::from_u32((c as u32) + 10).unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Alpha => line,
+        Pattern::Blank => line
+            .chars()
+            .map(|c| if c.is_alphabetic() { ' ' } else { c })
+            .collect(),
+        Pattern::Cntrl => line
+            .chars()
+            .map(|c| if c.is_alphabetic() { ' ' } else { c })
+            .collect(),
+        Pattern::Digit => line
+            .chars()
+            .map(|c| {
+                if c.is_alphabetic() & !c.is_ascii_digit() {
+                    '9'
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Lower => line
+            .chars()
+            .map(|c| {
+                if c.is_alphabetic() {
+                    c.to_lowercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Space => line
+            .chars()
+            .map(|c| if c.is_alphabetic() { ' ' } else { c })
+            .collect(),
+        Pattern::Upper => line
+            .chars()
+            .map(|c| {
+                if c.is_alphabetic() {
+                    c.to_uppercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Char(new_c) => line
+            .chars()
+            .map(|c| if c.is_alphabetic() { new_c } else { c })
             .collect(),
     };
 
