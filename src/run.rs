@@ -62,21 +62,14 @@ fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result
         line = match char1 {
             // Pattern::Alnum => line.replace(char::is_alphanumeric, &char2.to_string()),
             Pattern::Alnum => translate_alphanumerics(line, char2)?,
-            Pattern::Alpha => line.replace(char::is_alphabetic, "a"),
-            Pattern::Blank => line.replace(char::is_whitespace, "a"),
-            Pattern::Cntrl => line.replace(char::is_control, "a"),
-            Pattern::Digit => line.replace(char::is_numeric, "a"),
-            Pattern::Lower => line.replace(char::is_lowercase, "a"),
-            Pattern::Space => line.replace(char::is_whitespace, "a"),
-            Pattern::Upper => line.replace(char::is_uppercase, "a"),
-            Pattern::Char(c) => translate_char(line, c, char2)?, // Pattern::Alpha => line.replace(char::is_alphabetic, &char2.to_string()),
-                                                                 // Pattern::Blank => line.replace(char::is_whitespace, &char2.to_string()),
-                                                                 // Pattern::Cntrl => line.replace(char::is_control, &char2.to_string()),
-                                                                 // Pattern::Digit => line.replace(char::is_numeric, &char2.to_string()),
-                                                                 // Pattern::Lower => line.replace(char::is_lowercase, &char2.to_string()),
-                                                                 // Pattern::Space => line.replace(char::is_whitespace, &char2.to_string()),
-                                                                 // Pattern::Upper => line.replace(char::is_uppercase, &char2.to_string()),
-                                                                 // Pattern::Char(c) => line.replace(&c, &char2.to_string())
+            Pattern::Alpha => line.replace(char::is_alphabetic, "a"), // not done
+            Pattern::Blank => translate_blank(line, char2)?,
+            Pattern::Cntrl => translate_control(line, char2)?,
+            Pattern::Digit => translate_digit(line, char2)?,
+            Pattern::Lower => line.replace(char::is_lowercase, "a"),  // not done
+            Pattern::Space => translate_blank(line, char2)?,
+            Pattern::Upper => line.replace(char::is_uppercase, "a"),  // not done
+            Pattern::Char(c) => translate_char(line, c, char2)?,
         }
     }
 
@@ -189,6 +182,177 @@ fn translate_alphanumerics(mut line: String, pattern: Pattern) -> Result<String>
         Pattern::Char(new_c) => line
             .chars()
             .map(|c| if c.is_alphanumeric() { new_c } else { c })
+            .collect(),
+    };
+
+    Ok(line)
+}
+
+/// Translate whitespace characters (' ') into the gven pattern
+fn translate_blank(mut line: String, pattern: Pattern) -> Result<String> {
+    line = match pattern {
+        Pattern::Alnum => line
+            .chars()
+            .map(|c| if c == ' ' { '2' } else { c })
+            .collect(),
+        Pattern::Alpha => line
+            .chars()
+            .map(|c| if c == ' ' { 'C' } else { c })
+            .collect(),
+        Pattern::Blank => line,
+        Pattern::Cntrl => line
+            .chars()
+            .map(|c| if c == ' ' { ' ' } else { c })
+            .collect(),
+        Pattern::Digit => line
+            .chars()
+            .map(|c| if c == ' ' { '2' } else { c })
+            .collect(),
+        Pattern::Lower => line
+            .chars()
+            .map(|c| {
+                if c == ' ' {
+                    c.to_lowercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Space => line,
+        Pattern::Upper => line
+            .chars()
+            .map(|c| {
+                if c == ' ' {
+                    c.to_uppercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Char(new_c) => line.replace(' ', &new_c.to_string()),
+    };
+
+    Ok(line)
+}
+
+/// Translate the control characters
+fn translate_control(mut line: String, pattern: Pattern) -> Result<String> {
+    line = match pattern {
+        Pattern::Alnum => line
+            .chars()
+            .map(|c| if c.is_control() { 'A' } else { c })
+            .collect(),
+        Pattern::Alpha => line
+            .chars()
+            .map(|c| if c.is_control() { 'K' } else { c })
+            .collect(),
+        Pattern::Blank => line
+            .chars()
+            .map(|c| if c.is_control() { ' ' } else { c })
+            .collect(),
+        Pattern::Cntrl => line,
+        Pattern::Digit => line
+            .chars()
+            .map(|c| {
+                if c.is_control() & !c.is_ascii_digit() {
+                    '9'
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Lower => line
+            .chars()
+            .map(|c| {
+                if c.is_control() {
+                    c.to_lowercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Space => line
+            .chars()
+            .map(|c| if c.is_control() { ' ' } else { c })
+            .collect(),
+        Pattern::Upper => line
+            .chars()
+            .map(|c| {
+                if c.is_control() {
+                    c.to_uppercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Char(new_c) => line
+            .chars()
+            .map(|c| if c.is_control() { new_c } else { c })
+            .collect(),
+    };
+
+    Ok(line)
+}
+
+/// Translate the digits into the given pattern
+fn translate_digit(mut line: String, pattern: Pattern) -> Result<String> {
+    line = match pattern {
+        Pattern::Alnum => line
+            .chars()
+            .map(|c| {
+                if c.is_numeric() {
+                    char::from_u32(c as u32).unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Alpha => line
+            .chars()
+            .map(|c| {
+                if c.is_numeric() {
+                    char::from_u32(c as u32).unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Blank => line
+            .chars()
+            .map(|c| if c.is_numeric() { ' ' } else { c })
+            .collect(),
+        Pattern::Cntrl => line
+            .chars()
+            .map(|c| if c.is_numeric() { ' ' } else { c })
+            .collect(),
+        Pattern::Digit => line,
+        Pattern::Lower => line
+            .chars()
+            .map(|c| {
+                if c.is_numeric() {
+                    char::from_u32((c.to_digit(10).unwrap() as u32) + 97).unwrap().to_lowercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Space => line
+            .chars()
+            .map(|c| if c.is_numeric() { ' ' } else { c })
+            .collect(),
+        Pattern::Upper => line
+            .chars()
+            .map(|c| {
+                if c.is_numeric() {
+                    char::from_u32((c.to_digit(10).unwrap() as u32) + 65).unwrap().to_uppercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect(),
+        Pattern::Char(new_c) => line
+            .chars()
+            .map(|c| if c.is_numeric() { new_c } else { c })
             .collect(),
     };
 
@@ -730,6 +894,78 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b"CODING CHALLENGE\n");
+    }
+
+    #[test]
+    fn can_translate_digits_to_chars() {
+        let line = "01234 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:digit:]".to_string(),
+            string2: Some("a".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"aaaaa challenge\n");
+    }
+
+    #[test]
+    fn can_translate_digits_to_control_chars() {
+        let line = "01234 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:digit:]".to_string(),
+            string2: Some("[:cntrl:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"      challenge\n");
+    }
+
+    #[test]
+    fn can_translate_digits_to_lowercase_chars() {
+        let line = "01234 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:digit:]".to_string(),
+            string2: Some("[:lower:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"abcde challenge\n");
+    }
+
+    #[test]
+    fn can_translate_digits_to_uppercase_chars() {
+        let line = "01234 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:digit:]".to_string(),
+            string2: Some("[:upper:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = translate(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"ABCDE challenge\n");
     }
 
     // ************************************************************************
