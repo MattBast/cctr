@@ -2,7 +2,7 @@
 /// with the required combination of arguments.
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 // ************************************************************************
 // translate mode tests
@@ -275,6 +275,362 @@ fn running_with_an_empty_string_returns_error() -> Result<()> {
 
     // make sure the function is a failure and returns a misuse of shell exit code
     cmd.assert().failure().code(2);
+
+    Ok(())
+}
+
+// ************************************************************************
+// delete flag tests
+// ************************************************************************
+
+#[test]
+fn can_delete_single_characters() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("Coding challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("C")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"oding challenge\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_many_characters() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("Coding challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("Cdg")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"oin challene\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_everything() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("Coding challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("Coding challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_digits() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("123 challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("123")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b" challenge\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_whitespace() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("Coding challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg(" ")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"Codingchallenge\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_special_chars() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("Coding@challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("@")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"Codingchallenge\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_upper_class() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("CoDinG challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("[:upper:]")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"oin challenge\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_lower_class() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("CoDinG challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("[:lower:]")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"CDG \n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_alphabetic_chars() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("123 challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("[:alpha:]")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"123 \n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_alphanumeric_chars() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("123@challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("[:alnum:]")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"@\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_blanks() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("123 challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("[:blank:]")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"123challenge\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+
+#[test]
+fn can_delete_control_characters() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("123\tchallenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("[:cntrl:]")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b"123challenge\n", output.stdout.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn can_delete_digit_characters() -> Result<()> {
+    // mock an echo command that then gets piped to the cctr stdin
+    let echo_out = Command::new("echo")
+        .arg("٣7৬¾ challenge")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start echo process")
+        .stdout
+        .expect("Failed to open echo stdout");
+
+    // run the cctr cli tool
+    let output = Command::cargo_bin("cctr")?
+        .stdin(Stdio::from(echo_out))
+        .arg("-d")
+        .arg("[:digit:]")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start cctr process")
+        .wait_with_output()
+        .expect("Failed to wait on cctr");
+
+    assert_eq!(b" challenge\n", output.stdout.as_slice());
 
     Ok(())
 }
