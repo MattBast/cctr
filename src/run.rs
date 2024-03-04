@@ -394,7 +394,11 @@ fn translate_digit(mut line: String, pattern: Pattern) -> Result<String> {
             .chars()
             .map(|c| {
                 if c.is_numeric() {
-                    char::from_u32((c.to_digit(10).unwrap() as u32) + 97).unwrap().to_lowercase().next().unwrap()
+                    char::from_u32(c.to_digit(10).unwrap() + 97)
+                        .unwrap()
+                        .to_lowercase()
+                        .next()
+                        .unwrap()
                 } else {
                     c
                 }
@@ -408,7 +412,11 @@ fn translate_digit(mut line: String, pattern: Pattern) -> Result<String> {
             .chars()
             .map(|c| {
                 if c.is_numeric() {
-                    char::from_u32((c.to_digit(10).unwrap() as u32) + 65).unwrap().to_uppercase().next().unwrap()
+                    char::from_u32(c.to_digit(10).unwrap() + 65)
+                        .unwrap()
+                        .to_uppercase()
+                        .next()
+                        .unwrap()
                 } else {
                     c
                 }
@@ -431,8 +439,7 @@ fn translate_lowercase(mut line: String, pattern: Pattern) -> Result<String> {
             .map(|c| {
                 if c.is_lowercase() {
                     char::from_u32((c as u32) - 49).unwrap()
-                }
-                else {
+                } else {
                     c
                 }
             })
@@ -460,13 +467,11 @@ fn translate_lowercase(mut line: String, pattern: Pattern) -> Result<String> {
             .map(|c| {
                 if c.is_lowercase() {
                     if c as u32 <= 48 {
-                        char::from_u32((c as u32) - 49).unwrap()    
-                    }
-                    else {
+                        char::from_u32((c as u32) - 49).unwrap()
+                    } else {
                         '9'
                     }
-                }
-                else {
+                } else {
                     c
                 }
             })
@@ -503,8 +508,7 @@ fn translate_uppercase(mut line: String, pattern: Pattern) -> Result<String> {
             .map(|c| {
                 if c.is_uppercase() {
                     char::from_u32((c as u32) - 49).unwrap()
-                }
-                else {
+                } else {
                     c
                 }
             })
@@ -532,13 +536,11 @@ fn translate_uppercase(mut line: String, pattern: Pattern) -> Result<String> {
             .map(|c| {
                 if c.is_uppercase() {
                     if c as u32 <= 48 {
-                        char::from_u32((c as u32) - 49).unwrap()    
-                    }
-                    else {
+                        char::from_u32((c as u32) - 49).unwrap()
+                    } else {
                         '9'
                     }
-                }
-                else {
+                } else {
                     c
                 }
             })
@@ -621,8 +623,7 @@ fn translate_char(mut line: String, pattern1: char, pattern2: Pattern) -> Result
 }
 
 fn delete(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()> {
-
-    // Extract the only string we need from from args and extract a vector 
+    // Extract the only string we need from from args and extract a vector
     // of patterns to delete from it
     let string1 = &mut args.string1;
     let patterns = get_patterns(string1)?;
@@ -643,7 +644,6 @@ fn delete(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()
     }
 
     writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
-    
 }
 
 fn compress(line: String, args: &Cli) -> Result<()> {

@@ -285,7 +285,6 @@ fn running_with_an_empty_string_returns_error() -> Result<()> {
 
 #[test]
 fn can_delete_single_characters() -> Result<()> {
-    
     // mock an echo command that then gets piped to the cctr stdin
     let echo_out = Command::new("echo")
         .arg("Coding challenge")
@@ -313,7 +312,6 @@ fn can_delete_single_characters() -> Result<()> {
 
 #[test]
 fn can_delete_many_characters() -> Result<()> {
-    
     // mock an echo command that then gets piped to the cctr stdin
     let echo_out = Command::new("echo")
         .arg("Coding challenge")
