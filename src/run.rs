@@ -32,7 +32,7 @@ fn process_line(line: String, args: &mut Cli, mode: &Mode) -> Result<()> {
 
     match mode {
         Mode::Translate => translate(line, args, &mut writer_handle),
-        Mode::Delete => delete(line, args),
+        Mode::Delete => delete(line, args, &mut writer_handle),
         Mode::Compress => compress(line, args),
         Mode::DeleteCompress => delete_and_compress(line, args),
     }
@@ -60,7 +60,6 @@ fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result
     // Replace all chars found in string1 with the chars found in string2
     for (char1, char2) in zip(graphemes1, graphemes2) {
         line = match char1 {
-            // Pattern::Alnum => line.replace(char::is_alphanumeric, &char2.to_string()),
             Pattern::Alnum => translate_alphanumerics(line, char2)?,
             Pattern::Alpha => translate_alphabetic(line, char2)?,
             Pattern::Blank => translate_blank(line, char2)?,
@@ -621,11 +620,30 @@ fn translate_char(mut line: String, pattern1: char, pattern2: Pattern) -> Result
     Ok(line)
 }
 
-fn delete(line: String, args: &Cli) -> Result<()> {
-    println!("Delete");
-    println!("{:?}", line);
-    println!("{:?}", args);
-    Ok(())
+fn delete(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()> {
+
+    // Extract the only string we need from from args and extract a vector 
+    // of patterns to delete from it
+    let string1 = &mut args.string1;
+    let patterns = get_patterns(string1)?;
+
+    // Replace all chars found in string1 with the chars found in string2
+    for pattern in patterns {
+        line = match pattern {
+            Pattern::Alnum => line.replace(char::is_alphanumeric, ""),
+            Pattern::Alpha => line.replace(char::is_alphabetic, ""),
+            Pattern::Blank => line.replace(char::is_whitespace, ""),
+            Pattern::Cntrl => line.replace(char::is_control, ""),
+            Pattern::Digit => line.replace(char::is_numeric, ""),
+            Pattern::Lower => line.replace(char::is_lowercase, ""),
+            Pattern::Space => line.replace(char::is_whitespace, ""),
+            Pattern::Upper => line.replace(char::is_uppercase, ""),
+            Pattern::Char(c) => line.replace(c, ""),
+        }
+    }
+
+    writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
+    
 }
 
 fn compress(line: String, args: &Cli) -> Result<()> {
@@ -1180,4 +1198,245 @@ mod tests {
     // ************************************************************************
     // translate tests (Ccu flags)
     // ************************************************************************
+
+    // ************************************************************************
+    // delete tests
+    // ************************************************************************
+    #[test]
+    fn can_delete_single_characters() {
+        let line = "Coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "C".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"oding challenge\n");
+    }
+
+    #[test]
+    fn can_delete_many_characters() {
+        let line = "Coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "Cdg".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"oin challene\n");
+    }
+
+    #[test]
+    fn can_delete_nothing() {
+        let line = "Coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Coding challenge\n");
+    }
+
+    #[test]
+    fn can_delete_everything() {
+        let line = "Coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "Coding challenge".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"\n");
+    }
+
+    #[test]
+    fn can_delete_digits() {
+        let line = "123 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "123".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b" challenge\n");
+    }
+
+    #[test]
+    fn can_delete_whitespace() {
+        let line = "Coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: " ".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Codingchallenge\n");
+    }
+
+    #[test]
+    fn can_delete_special_chars() {
+        let line = "Coding@challenge".to_string();
+
+        let mut args = Cli {
+            string1: "@".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Codingchallenge\n");
+    }
+
+    #[test]
+    fn can_delete_upper_class() {
+        let line = "CoDinG challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:upper:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"oin challenge\n");
+    }
+
+    #[test]
+    fn can_delete_lower_class() {
+        let line = "CoDinG challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:lower:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"CDG \n");
+    }
+
+    #[test]
+    fn can_delete_alphabetic_chars() {
+        let line = "123 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alpha:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"123 \n");
+    }
+
+    #[test]
+    fn can_delete_alphanumeric_chars() {
+        let line = "123@challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"@\n");
+    }
+
+    #[test]
+    fn can_delete_blanks() {
+        let line = "123 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:blank:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"123challenge\n");
+    }
+
+    #[test]
+    fn can_delete_control_characters() {
+        let line = "123\tchallenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:cntrl:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"123challenge\n");
+    }
+
+    #[test]
+    fn can_delete_digit_characters() {
+        let line = "٣7৬¾ challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:digit:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = delete(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b" challenge\n");
+    }
 }
