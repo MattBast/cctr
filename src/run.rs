@@ -33,7 +33,7 @@ fn process_line(line: String, args: &mut Cli, mode: &Mode) -> Result<()> {
     match mode {
         Mode::Translate => translate(line, args, &mut writer_handle),
         Mode::Delete => delete(line, args, &mut writer_handle),
-        Mode::Compress => compress(line, args),
+        Mode::Compress => compress(line, args, &mut writer_handle),
         Mode::DeleteCompress => delete_and_compress(line, args),
     }
 }
@@ -622,6 +622,7 @@ fn translate_char(mut line: String, pattern1: char, pattern2: Pattern) -> Result
     Ok(line)
 }
 
+/// Remove the patterns specified from the line parameter
 fn delete(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()> {
     // Extract the only string we need from from args and extract a vector
     // of patterns to delete from it
@@ -646,11 +647,49 @@ fn delete(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()
     writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
 }
 
-fn compress(line: String, args: &Cli) -> Result<()> {
-    println!("Compress");
-    println!("{:?}", line);
-    println!("{:?}", args);
-    Ok(())
+/// Remove repeating patterns
+fn compress(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()> {
+    
+    let string1 = &mut args.string1;
+    let patterns = get_patterns(string1)?;
+
+    
+    for pattern in patterns {
+        
+        let mut new_line = String::new();
+        
+        // Loop through characters in string adding each one to a new copy
+        // of the string unless the last character added to the string was
+        // the same.
+        for c in line.chars() {
+            if new_line.ends_with(c) && check_char(&pattern, &c) {
+                continue;
+            }
+            else {
+                new_line.push(c);
+            }
+        };
+
+        // Replace the line with the sequence of repeated characters removed
+        line = new_line;
+
+    }
+
+    writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
+}
+
+fn check_char(pattern: &Pattern, character: &char) -> bool {
+    match pattern {
+        Pattern::Alnum => character.is_alphanumeric(),
+        Pattern::Alpha => character.is_alphabetic(),
+        Pattern::Blank => character.is_whitespace(),
+        Pattern::Cntrl => character.is_control(),
+        Pattern::Digit => character.is_numeric(),
+        Pattern::Lower => character.is_lowercase(),
+        Pattern::Space => character.is_whitespace(),
+        Pattern::Upper => character.is_uppercase(),
+        Pattern::Char(c) => c == character,
+    }
 }
 
 fn delete_and_compress(line: String, args: &Cli) -> Result<()> {
@@ -1434,6 +1473,162 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(writer, b" challenge\n");
+    }
+
+    // ************************************************************************
+    // compress tests
+    // ************************************************************************
+    #[test]
+    fn can_squeeze_single_characters() {
+        let line = "Coding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "l".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = compress(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Coding chalenge\n");
+    }
+
+    #[test]
+    fn can_squeeze_multiple_characters() {
+        let line = "Codding challenggge".to_string();
+
+        let mut args = Cli {
+            string1: "ldg".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = compress(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Coding chalenge\n");
+    }
+
+    #[test]
+    fn can_squeeze_upper_class() {
+        let line = "CCCCoding challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:upper:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = compress(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Coding challenge\n");
+    }
+
+    #[test]
+    fn can_squeeze_lower_class() {
+        let line = "Codding challenggge".to_string();
+
+        let mut args = Cli {
+            string1: "[:lower:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = compress(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Coding chalenge\n");
+    }
+
+    #[test]
+    fn can_squeeze_alphabetic_class() {
+        let line = "Codding challenggge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alpha:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = compress(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Coding chalenge\n");
+    }
+
+    #[test]
+    fn can_squeeze_alphanumeric_class() {
+        let line = "11123455 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alnum:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = compress(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"12345 chalenge\n");
+    }
+
+    #[test]
+    fn can_squeeze_digit_class() {
+        let line = "11123455 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:digit:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = compress(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"12345 challenge\n");
+    }
+
+    #[test]
+    fn can_squeeze_blank_class() {
+        let line = "a b  challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:blank:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = compress(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"a b challenge\n");
+    }
+
+    #[test]
+    fn can_squeeze_control_class() {
+        let line = "Coding\t\t\tchallenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:blank:]".to_string(),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = compress(line, &mut args, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"Coding\tchallenge\n");
     }
 
     // ************************************************************************
