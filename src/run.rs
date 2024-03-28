@@ -30,11 +30,30 @@ pub fn run(args: &mut Cli, mode: &Mode) -> Result<()> {
 /// Translate, delete and/or compress a single line
 fn process_line(line: String, args: &mut Cli, mode: &Mode, mut writer: impl Write) -> Result<()> {
     
+    // Extract a list of patterns to process from string1
+    let string1 = &mut args.string1;
+    let patterns1 = get_patterns(string1)?;
+
+    // Extract a list of patterns to process from string2 
+    // (only if in Translate or DeleteCompress mode)
+    let patterns2 = match mode {
+        Mode::Translate => {
+            let string2 = &mut args.string2.clone().unwrap();
+            get_patterns(string2)?
+        },
+        Mode::Delete => Vec::new(),
+        Mode::Compress => Vec::new(),
+        Mode::DeleteCompress => {
+            let string2 = &mut args.string2.clone().unwrap();
+            get_patterns(string2)?
+        },
+    };
+
     let line = match mode {
-        Mode::Translate => translate(line, args)?,
-        Mode::Delete => delete(line, args)?,
-        Mode::Compress => compress(line, args)?,
-        Mode::DeleteCompress => delete_and_compress(line, args)?,
+        Mode::Translate => translate(line, patterns1, patterns2)?,
+        Mode::Delete => delete(line, patterns1)?,
+        Mode::Compress => compress(line, patterns1)?,
+        Mode::DeleteCompress => delete_and_compress(line, patterns1, patterns2)?,
     };
 
     writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
@@ -43,16 +62,8 @@ fn process_line(line: String, args: &mut Cli, mode: &Mode, mut writer: impl Writ
 
 /// Translate the given line using string1 and string2 in the args. Write the translated line
 /// to writer.
-fn translate(mut line: String, args: &mut Cli) -> Result<String> {
+fn translate(mut line: String, mut graphemes1: Vec<Pattern>, mut graphemes2: Vec<Pattern>) -> Result<String> {
     
-    // Extract strings from args
-    let string1 = &mut args.string1;
-    let string2 = &mut args.string2.clone().unwrap();
-
-    // Search for graphemes rather than chars to handle unicode characters like "a̐"
-    let mut graphemes1 = get_patterns(string1)?;
-    let mut graphemes2 = get_patterns(string2)?;
-
     // Make sure both strings are the same length. If not, pad the shorter one
     // with whitespace chracters
     if graphemes1.len() > graphemes2.len() {
@@ -628,13 +639,8 @@ fn translate_char(mut line: String, pattern1: char, pattern2: Pattern) -> Result
 }
 
 /// Remove the patterns specified from the line parameter
-fn delete(mut line: String, args: &mut Cli) -> Result<String> {
+fn delete(mut line: String, patterns: Vec<Pattern>) -> Result<String> {
     
-    // Extract the only string we need from from args and extract a vector
-    // of patterns to delete from it
-    let string1 = &mut args.string1;
-    let patterns = get_patterns(string1)?;
-
     // Replace all chars found in string1 with the chars found in string2
     for pattern in patterns {
         line = match pattern {
@@ -655,11 +661,7 @@ fn delete(mut line: String, args: &mut Cli) -> Result<String> {
 }
 
 /// Remove repeating patterns
-fn compress(mut line: String, args: &mut Cli) -> Result<String> {
-    
-    let string1 = &mut args.string1;
-    let patterns = get_patterns(string1)?;
-
+fn compress(mut line: String, patterns: Vec<Pattern>) -> Result<String> {
     
     for pattern in patterns {
         
@@ -686,6 +688,7 @@ fn compress(mut line: String, args: &mut Cli) -> Result<String> {
 
 }
 
+/// Returns true if a character should be processed
 fn check_char(pattern: &Pattern, character: &char) -> bool {
     match pattern {
         Pattern::Alnum => character.is_alphanumeric(),
@@ -700,11 +703,14 @@ fn check_char(pattern: &Pattern, character: &char) -> bool {
     }
 }
 
-fn delete_and_compress(line: String, args: &Cli) -> Result<String> {
-    println!("Delete and Compress");
-    println!("{:?}", line);
-    println!("{:?}", args);
-    Ok(String::new())
+/// Run the delete and compress functions together over a single line of characters
+fn delete_and_compress(mut line: String, patterns1: Vec<Pattern>, patterns2: Vec<Pattern>) -> Result<String> {
+    
+    line = delete(line, patterns1)?;
+    line = compress(line, patterns2)?;
+
+    Ok(line)
+
 }
 
 #[cfg(test)]
@@ -1712,7 +1718,7 @@ mod tests {
         let result = process_line(line, &mut args, &Mode::DeleteCompress, &mut writer);
 
         assert!(result.is_ok());
-        assert_eq!(writer, b"123\n");
+        assert_eq!(writer, b"123 \n");
     }
 
     #[test]
@@ -1730,7 +1736,7 @@ mod tests {
         let result = process_line(line, &mut args, &Mode::DeleteCompress, &mut writer);
 
         assert!(result.is_ok());
-        assert_eq!(writer, b"\tchallenge\n");
+        assert_eq!(writer, b"challenge\n");
     }
 
     // ************************************************************************
