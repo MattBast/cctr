@@ -580,7 +580,6 @@ fn can_delete_blanks() -> Result<()> {
     Ok(())
 }
 
-
 #[test]
 fn can_delete_control_characters() -> Result<()> {
     // mock an echo command that then gets piped to the cctr stdin

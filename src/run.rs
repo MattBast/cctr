@@ -9,7 +9,6 @@ use std::iter::zip;
 /// Translate, delete and/or compress the strings held in `args`. Use `mode` to
 /// decide whether to translate, delete and/or compress. Write the output to stdout.
 pub fn run(args: &mut Cli, mode: &Mode) -> Result<()> {
-
     if stdin().is_terminal() {
         // Request a line of text from the user
         let mut line = String::new();
@@ -29,24 +28,23 @@ pub fn run(args: &mut Cli, mode: &Mode) -> Result<()> {
 
 /// Translate, delete and/or compress a single line
 fn process_line(line: String, args: &mut Cli, mode: &Mode, mut writer: impl Write) -> Result<()> {
-    
     // Extract a list of patterns to process from string1
     let string1 = &mut args.string1;
     let patterns1 = get_patterns(string1)?;
 
-    // Extract a list of patterns to process from string2 
+    // Extract a list of patterns to process from string2
     // (only if in Translate or DeleteCompress mode)
     let patterns2 = match mode {
         Mode::Translate => {
             let string2 = &mut args.string2.clone().unwrap();
             get_patterns(string2)?
-        },
+        }
         Mode::Delete => Vec::new(),
         Mode::Compress => Vec::new(),
         Mode::DeleteCompress => {
             let string2 = &mut args.string2.clone().unwrap();
             get_patterns(string2)?
-        },
+        }
     };
 
     let line = match mode {
@@ -57,13 +55,15 @@ fn process_line(line: String, args: &mut Cli, mode: &Mode, mut writer: impl Writ
     };
 
     writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
-
 }
 
 /// Translate the given line using string1 and string2 in the args. Write the translated line
 /// to writer.
-fn translate(mut line: String, mut graphemes1: Vec<Pattern>, mut graphemes2: Vec<Pattern>) -> Result<String> {
-    
+fn translate(
+    mut line: String,
+    mut graphemes1: Vec<Pattern>,
+    mut graphemes2: Vec<Pattern>,
+) -> Result<String> {
     // Make sure both strings are the same length. If not, pad the shorter one
     // with whitespace chracters
     if graphemes1.len() > graphemes2.len() {
@@ -88,7 +88,6 @@ fn translate(mut line: String, mut graphemes1: Vec<Pattern>, mut graphemes2: Vec
     }
 
     Ok(line)
-
 }
 
 /// Defines the patterns in string1 and string2 to process
@@ -640,7 +639,6 @@ fn translate_char(mut line: String, pattern1: char, pattern2: Pattern) -> Result
 
 /// Remove the patterns specified from the line parameter
 fn delete(mut line: String, patterns: Vec<Pattern>) -> Result<String> {
-    
     // Replace all chars found in string1 with the chars found in string2
     for pattern in patterns {
         line = match pattern {
@@ -657,35 +655,29 @@ fn delete(mut line: String, patterns: Vec<Pattern>) -> Result<String> {
     }
 
     Ok(line)
-
 }
 
 /// Remove repeating patterns
 fn compress(mut line: String, patterns: Vec<Pattern>) -> Result<String> {
-    
     for pattern in patterns {
-        
         let mut new_line = String::new();
-        
+
         // Loop through characters in string adding each one to a new copy
         // of the string unless the last character added to the string was
         // the same.
         for c in line.chars() {
             if new_line.ends_with(c) && check_char(&pattern, &c) {
                 continue;
-            }
-            else {
+            } else {
                 new_line.push(c);
             }
-        };
+        }
 
         // Replace the line with the sequence of repeated characters removed
         line = new_line;
-
     }
 
     Ok(line)
-
 }
 
 /// Returns true if a character should be processed
@@ -704,13 +696,15 @@ fn check_char(pattern: &Pattern, character: &char) -> bool {
 }
 
 /// Run the delete and compress functions together over a single line of characters
-fn delete_and_compress(mut line: String, patterns1: Vec<Pattern>, patterns2: Vec<Pattern>) -> Result<String> {
-    
+fn delete_and_compress(
+    mut line: String,
+    patterns1: Vec<Pattern>,
+    patterns2: Vec<Pattern>,
+) -> Result<String> {
     line = delete(line, patterns1)?;
     line = compress(line, patterns2)?;
 
     Ok(line)
-
 }
 
 #[cfg(test)]
@@ -1742,5 +1736,4 @@ mod tests {
     // ************************************************************************
     // translate tests (Ccu flags)
     // ************************************************************************
-
 }
