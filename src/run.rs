@@ -1640,6 +1640,101 @@ mod tests {
     }
 
     // ************************************************************************
+    // delete and compress tests (ds flags)
+    // ************************************************************************
+
+    #[test]
+    fn can_delete_and_squeeze_single_characters() {
+        let line = "Coding Challenge".to_string();
+
+        let mut args = Cli {
+            string1: "C".to_string(),
+            string2: Some("l".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = process_line(line, &mut args, &Mode::DeleteCompress, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"oding halenge\n");
+    }
+
+    #[test]
+    fn can_delete_and_squeeze_multiple_characters() {
+        let line = "Coding Challeeennnnnge".to_string();
+
+        let mut args = Cli {
+            string1: "Cod".to_string(),
+            string2: Some("len".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = process_line(line, &mut args, &Mode::DeleteCompress, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"ing halenge\n");
+    }
+
+    #[test]
+    fn can_delete_and_squeeze_upper_and_lower_class_characters() {
+        let line = "CODing Challeeennnnnge".to_string();
+
+        let mut args = Cli {
+            string1: "[:upper:]".to_string(),
+            string2: Some("[:lower:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = process_line(line, &mut args, &Mode::DeleteCompress, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"ing halenge\n");
+    }
+
+    #[test]
+    fn can_delete_and_squeeze_alpha_and_digit_class_characters() {
+        let line = "1112233333 challenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:alpha:]".to_string(),
+            string2: Some("[:digit:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = process_line(line, &mut args, &Mode::DeleteCompress, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"123\n");
+    }
+
+    #[test]
+    fn can_delete_and_squeeze_blank_and_control_class_characters() {
+        let line = "   \t\t\tchallenge".to_string();
+
+        let mut args = Cli {
+            string1: "[:blank:]".to_string(),
+            string2: Some("[:cntrl:]".to_string()),
+            ..Default::default()
+        };
+
+        let mut writer = Vec::new();
+
+        let result = process_line(line, &mut args, &Mode::DeleteCompress, &mut writer);
+
+        assert!(result.is_ok());
+        assert_eq!(writer, b"\tchallenge\n");
+    }
+
+    // ************************************************************************
     // translate tests (Ccu flags)
     // ************************************************************************
+
 }
