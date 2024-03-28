@@ -9,38 +9,42 @@ use std::iter::zip;
 /// Translate, delete and/or compress the strings held in `args`. Use `mode` to
 /// decide whether to translate, delete and/or compress. Write the output to stdout.
 pub fn run(args: &mut Cli, mode: &Mode) -> Result<()> {
+
     if stdin().is_terminal() {
         // Request a line of text from the user
         let mut line = String::new();
         stdin().read_line(&mut line)?;
 
-        process_line(line, args, mode)?;
+        process_line(line, args, mode, BufWriter::new(stdout()))?;
     } else {
         // Read the lines of text received from another cli application
         let reader = BufReader::new(stdin().lock());
         reader
             .lines()
-            .try_for_each(|line| process_line(line?, args, mode))?;
+            .try_for_each(|line| process_line(line?, args, mode, BufWriter::new(stdout())))?;
     }
 
     Ok(())
 }
 
 /// Translate, delete and/or compress a single line
-fn process_line(line: String, args: &mut Cli, mode: &Mode) -> Result<()> {
-    let mut writer_handle = BufWriter::new(stdout());
+fn process_line(line: String, args: &mut Cli, mode: &Mode, mut writer: impl Write) -> Result<()> {
+    
+    let line = match mode {
+        Mode::Translate => translate(line, args)?,
+        Mode::Delete => delete(line, args)?,
+        Mode::Compress => compress(line, args)?,
+        Mode::DeleteCompress => delete_and_compress(line, args)?,
+    };
 
-    match mode {
-        Mode::Translate => translate(line, args, &mut writer_handle),
-        Mode::Delete => delete(line, args, &mut writer_handle),
-        Mode::Compress => compress(line, args, &mut writer_handle),
-        Mode::DeleteCompress => delete_and_compress(line, args),
-    }
+    writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
+
 }
 
 /// Translate the given line using string1 and string2 in the args. Write the translated line
 /// to writer.
-fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()> {
+fn translate(mut line: String, args: &mut Cli) -> Result<String> {
+    
     // Extract strings from args
     let string1 = &mut args.string1;
     let string2 = &mut args.string2.clone().unwrap();
@@ -72,7 +76,8 @@ fn translate(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result
         }
     }
 
-    writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
+    Ok(line)
+
 }
 
 /// Defines the patterns in string1 and string2 to process
@@ -623,7 +628,8 @@ fn translate_char(mut line: String, pattern1: char, pattern2: Pattern) -> Result
 }
 
 /// Remove the patterns specified from the line parameter
-fn delete(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()> {
+fn delete(mut line: String, args: &mut Cli) -> Result<String> {
+    
     // Extract the only string we need from from args and extract a vector
     // of patterns to delete from it
     let string1 = &mut args.string1;
@@ -644,11 +650,12 @@ fn delete(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()
         }
     }
 
-    writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
+    Ok(line)
+
 }
 
 /// Remove repeating patterns
-fn compress(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<()> {
+fn compress(mut line: String, args: &mut Cli) -> Result<String> {
     
     let string1 = &mut args.string1;
     let patterns = get_patterns(string1)?;
@@ -675,7 +682,8 @@ fn compress(mut line: String, args: &mut Cli, mut writer: impl Write) -> Result<
 
     }
 
-    writeln!(writer, "{}", line).with_context(|| "Unable to write line to writer.".to_string())
+    Ok(line)
+
 }
 
 fn check_char(pattern: &Pattern, character: &char) -> bool {
@@ -692,11 +700,11 @@ fn check_char(pattern: &Pattern, character: &char) -> bool {
     }
 }
 
-fn delete_and_compress(line: String, args: &Cli) -> Result<()> {
+fn delete_and_compress(line: String, args: &Cli) -> Result<String> {
     println!("Delete and Compress");
     println!("{:?}", line);
     println!("{:?}", args);
-    Ok(())
+    Ok(String::new())
 }
 
 #[cfg(test)]
@@ -719,7 +727,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding Challenge\n");
@@ -737,7 +745,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"3oding 3hallenge\n");
@@ -755,7 +763,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"\n");
@@ -773,7 +781,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"CODing Challenge\n");
@@ -791,7 +799,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"CCCing Challenge\n");
@@ -809,7 +817,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding Challenge\n");
@@ -829,19 +837,19 @@ mod tests {
 
         // test first line
         let mut writer = Vec::new();
-        let result = translate(line1, &mut args, &mut writer);
+        let result = process_line(line1, &mut args, &Mode::Translate, &mut writer);
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding Challenge\n");
 
         // test second line
         writer.clear();
-        let result = translate(line2, &mut args, &mut writer);
+        let result = process_line(line2, &mut args, &Mode::Translate, &mut writer);
         assert!(result.is_ok());
         assert_eq!(writer, b"abCabCabC\n");
 
         // test second line
         writer.clear();
-        let result = translate(line3, &mut args, &mut writer);
+        let result = process_line(line3, &mut args, &Mode::Translate, &mut writer);
         assert!(result.is_ok());
         assert_eq!(writer, b"Come as you are\n");
     }
@@ -859,13 +867,13 @@ mod tests {
 
         // test first line
         let mut writer = Vec::new();
-        let result = translate(line1, &mut args, &mut writer);
+        let result = process_line(line1, &mut args, &Mode::Translate, &mut writer);
         assert!(result.is_ok());
         assert_eq!(writer, b"CCCing Challenge\n");
 
         // test second line
         writer.clear();
-        let result = translate(line2, &mut args, &mut writer);
+        let result = process_line(line2, &mut args, &Mode::Translate, &mut writer);
         assert!(result.is_ok());
         assert_eq!(writer, b"CCCing Challenge\n");
     }
@@ -882,7 +890,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"[coding challenge]\n");
@@ -904,7 +912,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"CODING CHALLENGE\n");
@@ -922,7 +930,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"coding challenge\n");
@@ -940,7 +948,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"coding_challenge\n");
@@ -958,7 +966,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"coding_challenge\n");
@@ -976,7 +984,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"aaa_aaaaaaaaa\n");
@@ -994,7 +1002,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"123_aaaaaaaaa\n");
@@ -1012,7 +1020,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"123 challenge\n");
@@ -1030,7 +1038,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"aaa challenge\n");
@@ -1048,7 +1056,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"mynsxq mrkvvoxqo\n");
@@ -1066,7 +1074,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"                \n");
@@ -1084,7 +1092,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"                \n");
@@ -1102,7 +1110,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"199999 999999999\n");
@@ -1120,7 +1128,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"coding challenge\n");
@@ -1138,7 +1146,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"                \n");
@@ -1156,7 +1164,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"CODING CHALLENGE\n");
@@ -1174,7 +1182,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"aaaaa challenge\n");
@@ -1192,7 +1200,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"      challenge\n");
@@ -1210,7 +1218,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"abcde challenge\n");
@@ -1228,7 +1236,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = translate(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Translate, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"ABCDE challenge\n");
@@ -1248,7 +1256,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"oding challenge\n");
@@ -1265,7 +1273,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"oin challene\n");
@@ -1282,7 +1290,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding challenge\n");
@@ -1299,7 +1307,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"\n");
@@ -1316,7 +1324,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b" challenge\n");
@@ -1333,7 +1341,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Codingchallenge\n");
@@ -1350,7 +1358,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Codingchallenge\n");
@@ -1367,7 +1375,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"oin challenge\n");
@@ -1384,7 +1392,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"CDG \n");
@@ -1401,7 +1409,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"123 \n");
@@ -1418,7 +1426,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"@\n");
@@ -1435,7 +1443,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"123challenge\n");
@@ -1452,7 +1460,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"123challenge\n");
@@ -1469,7 +1477,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = delete(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Delete, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b" challenge\n");
@@ -1489,7 +1497,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = compress(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Compress, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding chalenge\n");
@@ -1506,7 +1514,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = compress(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Compress, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding chalenge\n");
@@ -1523,7 +1531,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = compress(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Compress, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding challenge\n");
@@ -1540,7 +1548,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = compress(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Compress, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding chalenge\n");
@@ -1557,7 +1565,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = compress(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Compress, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding chalenge\n");
@@ -1574,7 +1582,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = compress(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Compress, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"12345 chalenge\n");
@@ -1591,7 +1599,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = compress(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Compress, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"12345 challenge\n");
@@ -1608,7 +1616,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = compress(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Compress, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"a b challenge\n");
@@ -1625,7 +1633,7 @@ mod tests {
 
         let mut writer = Vec::new();
 
-        let result = compress(line, &mut args, &mut writer);
+        let result = process_line(line, &mut args, &Mode::Compress, &mut writer);
 
         assert!(result.is_ok());
         assert_eq!(writer, b"Coding\tchallenge\n");
